@@ -43,16 +43,6 @@
    "amount": 5000,
    "date": "2026-10-15",
    "note": ""
-  },
-  {
-   "id": "o9mle4r",
-   "ts": 1794255567849,
-   "type": "in",
-   "goalId": "g1",
-   "personId": "zcx4i5f",
-   "amount": 5000,
-   "date": "2026-10-01",
-   "note": ""
   }
  ]
 }
