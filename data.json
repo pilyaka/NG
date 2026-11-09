@@ -33,5 +33,16 @@
    "target": 55000
   }
  ],
- "tx": []
+ "tx": [
+  {
+   "id": "c688t0p",
+   "ts": 1794255546993,
+   "type": "in",
+   "goalId": "g1",
+   "personId": "uh39hqc",
+   "amount": 5000,
+   "date": "2026-10-15",
+   "note": ""
+  }
+ ]
 }
