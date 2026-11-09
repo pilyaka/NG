@@ -78,6 +78,16 @@
    "amount": 1600,
    "date": "2026-10-08",
    "note": ""
+  },
+  {
+   "id": "gp3lnjt",
+   "ts": 1794255994616,
+   "type": "in",
+   "goalId": "g1",
+   "personId": "zcx4i5f",
+   "amount": 4167,
+   "date": "2026-11-09",
+   "note": ""
   }
  ]
 }
