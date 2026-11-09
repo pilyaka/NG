@@ -88,6 +88,16 @@
    "amount": 4167,
    "date": "2026-11-09",
    "note": ""
+  },
+  {
+   "id": "op1808m",
+   "ts": 1794256155141,
+   "type": "in",
+   "goalId": "g1",
+   "personId": "uh39hqc",
+   "amount": 2567,
+   "date": "2026-11-09",
+   "note": ""
   }
  ]
 }
