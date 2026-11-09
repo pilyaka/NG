@@ -43,6 +43,16 @@
    "amount": 5000,
    "date": "2026-10-15",
    "note": ""
+  },
+  {
+   "id": "2vxf1zv",
+   "ts": 1794255590671,
+   "type": "in",
+   "goalId": "g1",
+   "personId": "zcx4i5f",
+   "amount": 5000,
+   "date": "2026-10-01",
+   "note": "За бронь"
   }
  ]
 }
