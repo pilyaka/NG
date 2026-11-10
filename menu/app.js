@@ -36,7 +36,7 @@ var UNITS=[
   [/^(ст\.?\s?л\.?|столов[а-яё]*\s+лож[а-яё]*)/,'ст. л.'],
   [/^(ч\.?\s?л\.?|чайн[а-яё]*\s+лож[а-яё]*)/,'ч. л.'],
   [/^стакан[а-яё]*/,'стакан'],
-  [/^зубч[а-яё]*/,'зубчик'],
+  [/^зуб(ч[а-яё]*|ик[а-яё]*|\.|(?![а-яё]))/,'зубчик'],
   [/^(пуч[а-яё]*)/,'пучок'],
   [/^бан[а-яё]*/,'банка'],
   [new RegExp('^(уп|упак[а-яё]*)'+NB+'\\.?'),'уп.'],
@@ -59,7 +59,10 @@ function matchUnit(str){
   return null;
 }
 function normU(u){u=String(u||'').trim();if(!u)return '';var m=matchUnit(u);return m&&m.len>=u.replace(/\.$/,'').length-1?m.u:u.toLowerCase();}
-function base(q,u){u=normU(u);if(u==='кг')return{q:q*1000,u:'г'};if(u==='л')return{q:q*1000,u:'мл'};return{q:q,u:u};}
+// примерный пересчёт бытовых мер в граммы/миллилитры
+var APPROX={'ст. л.':[15,'мл'],'ч. л.':[5,'мл'],'стакан':[250,'мл'],'зубчик':[5,'г'],'головка':[50,'г'],'щепотка':[1,'г']};
+function base(q,u){u=normU(u);if(u==='кг')return{q:q*1000,u:'г'};if(u==='л')return{q:q*1000,u:'мл'};if(APPROX[u])return{q:q*APPROX[u][0],u:APPROX[u][1],approx:true};return{q:q,u:u};}
+function sameFam(a,b){return a===b||((a==='г'||a==='мл')&&(b==='г'||b==='мл'));}
 function fnum(n){if(n==null||!isFinite(n))return '';var r=n>=100?Math.round(n):n>=10?Math.round(n*10)/10:Math.round(n*100)/100;return String(r).replace('.',',');}
 function fq(q,u){
   if(q==null)return u||'';
@@ -311,7 +314,7 @@ function packFrac(ing,p){
   if(ing.q==null||ing.q==='')return null;
   if(!p||!p.packQ)return undefined;
   var a=base(+ing.q,ing.u),b=base(+p.packQ,p.packU);
-  if(a.u===b.u)return a.q/b.q;
+  if(sameFam(a.u,b.u))return a.q/b.q;
   if(PACKISH[a.u])return +ing.q;
   return NaN;
 }
@@ -343,7 +346,7 @@ function shopping(){
     it.cost=(it.packs&&p.price!=null)?it.packs*p.price:null;
     it.needText=Object.keys(it.needs).map(function(u){return fq(it.needs[u],u);}).join(' + ');
     it.left=null;
-    if(it.packs){var pb=base(+p.packQ,p.packU);if(it.needs[pb.u]!=null){var l=it.packs*pb.q-it.needs[pb.u];if(l>pb.q*0.02)it.left=fq(l,pb.u);}}
+    if(it.packs){var pb=base(+p.packQ,p.packU),nk=Object.keys(it.needs);if(nk.length===1&&sameFam(nk[0],pb.u)){var l=it.packs*pb.q-it.needs[nk[0]];if(l>pb.q*0.02)it.left=fq(l,pb.u);}}
     return it;
   });
   list.sort(function(a,b){return a.name.localeCompare(b.name,'ru');});
@@ -534,7 +537,7 @@ function viewEdit(rt){
     else if(!p||!p.packQ){hint=adm?'<span class="wrn">новый продукт — укажи упаковку и цену</span>':'<span class="mut">новый продукт — упаковку заполнит админ</span>';bad=adm;}
     else{var x=packFrac({q:qv,u:i.u},p);
       if(isNaN(x)){hint='<span class="wrn">в рецепте «'+esc(normU(i.u)||i.u)+'», а упаковка «'+esc(packText(p))+'» — укажи в тех же единицах</span>';bad=true;}
-      else hint='<span class="pos">'+(e?'':'из справочника · ')+'доля '+fnum(x)+' уп.'+(p.price!=null?' ≈ '+rub(x*p.price):'')+'</span>'+(p.price==null?' <span class="wrn">нет цены</span>':'');}
+      else hint='<span class="pos">'+(e?'':'из справочника · ')+(APPROX[normU(i.u)]?'1 '+esc(normU(i.u))+' ≈ '+APPROX[normU(i.u)].join(' ')+' · ':'')+'доля '+fnum(x)+' уп.'+(p.price!=null?' ≈ '+rub(x*p.price):'')+'</span>'+(p.price==null?' <span class="wrn">нет цены</span>':'');}
     h+='<div class="er'+(bad?' bad':'')+'"><div class="l1"><input id="iq'+ix+'" aria-label="Количество" data-ing="'+ix+'" data-k="q" inputmode="decimal" value="'+esc(i.q)+'"><input id="iu'+ix+'" aria-label="Единица" data-ing="'+ix+'" data-k="u" list="units" value="'+esc(i.u)+'"><input id="in'+ix+'" aria-label="Продукт" data-ing="'+ix+'" data-k="name" value="'+esc(i.name)+'"><button class="x" aria-label="Удалить строку" data-a="delIng" data-v="'+ix+'">×</button></div>';
     if(adm&&key&&qv!=null){
       var pk=e?e.pack:packText(M.products[key]),pp=e?e.price:(M.products[key]&&M.products[key].price!=null?String(M.products[key].price):'');
