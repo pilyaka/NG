@@ -1,0 +1,10 @@
+{
+ "v": 1,
+ "settings": {
+  "workerUrl": "https://menu-helper.jolyyx2000.workers.dev",
+  "goalName": "Продукты"
+ },
+ "products": {},
+ "recipes": [],
+ "shop": {}
+}
