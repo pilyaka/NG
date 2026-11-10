@@ -35,7 +35,8 @@
   {
    "id": "hiaagk8",
    "name": "Продукты",
-   "target": 10000
+   "target": 0,
+   "auto": "menu"
   }
  ],
  "tx": [
