@@ -95,58 +95,58 @@
   },
   "листья салата": {
    "name": "Листья салата",
-   "packQ": null,
-   "packU": "",
-   "packLabel": "",
-   "price": null,
+   "packQ": 1,
+   "packU": "шт",
+   "packLabel": "1",
+   "price": 100,
    "dept": null
   },
   "грудка куриная": {
    "name": "Грудка куриная",
-   "packQ": null,
-   "packU": "",
-   "packLabel": "",
-   "price": null,
+   "packQ": 1,
+   "packU": "кг",
+   "packLabel": "1кг",
+   "price": 500,
    "dept": null
   },
   "бекон": {
    "name": "Бекон",
-   "packQ": null,
-   "packU": "",
-   "packLabel": "",
-   "price": null,
+   "packQ": 150,
+   "packU": "г",
+   "packLabel": "150г",
+   "price": 160,
    "dept": null
   },
   "сухарики": {
    "name": "Сухарики",
-   "packQ": null,
-   "packU": "",
-   "packLabel": "",
-   "price": null,
+   "packQ": 80,
+   "packU": "г",
+   "packLabel": "80г",
+   "price": 60,
    "dept": null
   },
   "майонез": {
    "name": "Майонез",
-   "packQ": null,
-   "packU": "",
-   "packLabel": "",
-   "price": null,
+   "packQ": 600,
+   "packU": "г",
+   "packLabel": "600г",
+   "price": 160,
    "dept": null
   },
   "масло оливковое": {
    "name": "Масло оливковое",
-   "packQ": null,
-   "packU": "",
-   "packLabel": "",
-   "price": null,
+   "packQ": 250,
+   "packU": "мл",
+   "packLabel": "250мл",
+   "price": 300,
    "dept": null
   },
   "лимон": {
    "name": "Лимон",
-   "packQ": null,
-   "packU": "",
-   "packLabel": "",
-   "price": null,
+   "packQ": 1,
+   "packU": "шт",
+   "packLabel": "1шт",
+   "price": 85,
    "dept": null
   }
  },
@@ -259,12 +259,12 @@
      "name": "Листья салата"
     },
     {
-     "q": 2,
-     "u": "шт",
+     "q": 1,
+     "u": "кг",
      "name": "Грудка куриная"
     },
     {
-     "q": 200,
+     "q": 150,
      "u": "г",
      "name": "Бекон"
     },
