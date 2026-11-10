@@ -23,9 +23,9 @@
   },
   "соевый соус": {
    "name": "Соевый соус",
-   "packQ": null,
-   "packU": "",
-   "packLabel": "",
+   "packQ": 220,
+   "packU": "мл",
+   "packLabel": "220 мл",
    "price": null,
    "dept": null
   },
