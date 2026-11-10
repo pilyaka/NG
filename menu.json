@@ -31,9 +31,9 @@
   },
   "чеснок зуб": {
    "name": "Чеснок — зуб",
-   "packQ": null,
-   "packU": "",
-   "packLabel": "",
+   "packQ": 150,
+   "packU": "г",
+   "packLabel": "150 г",
    "price": null,
    "dept": null
   },
