@@ -7,9 +7,9 @@
  "products": {
   "креветки": {
    "name": "Креветки",
-   "packQ": null,
-   "packU": "",
-   "packLabel": "",
+   "packQ": 1000,
+   "packU": "г",
+   "packLabel": "1000г",
    "price": null,
    "dept": null
   },
