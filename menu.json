@@ -148,6 +148,14 @@
    "packLabel": "1шт",
    "price": 85,
    "dept": null
+  },
+  "кола": {
+   "name": "Кола",
+   "packQ": 1,
+   "packU": "л",
+   "packLabel": "1л",
+   "price": 100,
+   "dept": null
   }
  },
  "recipes": [
@@ -313,6 +321,27 @@
    "portions": 4,
    "addedBy": "Юля",
    "ts": 1794324298754
+  },
+  {
+   "id": "mgonz9ug",
+   "name": "Evervess Кола",
+   "tag": "drink",
+   "servings": 1,
+   "time": "1",
+   "source": "",
+   "image": "https://avatars.mds.yandex.net/get-goods_pic/11158783/hat5c8f3279a524962a36e85d7f817e9282/orig",
+   "ings": [
+    {
+     "q": 1,
+     "u": "л",
+     "name": "Кола"
+    }
+   ],
+   "steps": [],
+   "inMenu": true,
+   "portions": 1,
+   "addedBy": "",
+   "ts": 1794326438987
   }
  ],
  "shop": {}
