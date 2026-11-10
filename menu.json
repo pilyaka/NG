@@ -16,8 +16,8 @@
   "сливки 20%": {
    "name": "Сливки (20%)",
    "packQ": 500,
-   "packU": "г",
-   "packLabel": "500 г",
+   "packU": "мл",
+   "packLabel": "500 мл",
    "price": 200,
    "dept": null
   },
