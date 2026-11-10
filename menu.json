@@ -4,7 +4,94 @@
   "workerUrl": "https://menu-helper.jolyyx2000.workers.dev",
   "goalName": "Продукты"
  },
- "products": {},
- "recipes": [],
+ "products": {
+  "креветки": {
+   "name": "Креветки",
+   "packQ": null,
+   "packU": "",
+   "packLabel": "",
+   "price": null,
+   "dept": null
+  },
+  "сливки 20%": {
+   "name": "Сливки (20%)",
+   "packQ": null,
+   "packU": "",
+   "packLabel": "",
+   "price": null,
+   "dept": null
+  },
+  "соевый соус": {
+   "name": "Соевый соус",
+   "packQ": null,
+   "packU": "",
+   "packLabel": "",
+   "price": null,
+   "dept": null
+  },
+  "чеснок зуб": {
+   "name": "Чеснок — зуб",
+   "packQ": null,
+   "packU": "",
+   "packLabel": "",
+   "price": null,
+   "dept": null
+  },
+  "масло растительное": {
+   "name": "Масло растительное",
+   "packQ": null,
+   "packU": "",
+   "packLabel": "",
+   "price": null,
+   "dept": null
+  }
+ },
+ "recipes": [
+  {
+   "id": "ayer7tui",
+   "name": "Креветки в сливочном соусе",
+   "tag": "hot",
+   "servings": 4,
+   "time": "15 минут",
+   "source": "https://www.povarenok.ru/recipes/show/141082/",
+   "image": "https://www.povarenok.ru/data/cache/2017may/14/47/2015008_60728-710x550.jpg",
+   "ings": [
+    {
+     "q": 800,
+     "u": "г",
+     "name": "Креветки"
+    },
+    {
+     "q": 200,
+     "u": "мл",
+     "name": "Сливки (20%)"
+    },
+    {
+     "q": 3,
+     "u": "ст. л.",
+     "name": "Соевый соус"
+    },
+    {
+     "q": 3,
+     "u": "шт",
+     "name": "Чеснок — зуб"
+    },
+    {
+     "q": 3,
+     "u": "ст. л.",
+     "name": "Масло растительное"
+    }
+   ],
+   "steps": [
+    "Подготовить креветки: очистить, вытащить кишку, промыть.",
+    "Разогреть масло на сковороде, добавить рубленный чеснок и обжарить креветки 3-4 минуты.",
+    "Добавить соевый соус и сливки. Перемешать. Потушить на маленьком огне (не давать кипеть!) 2-3 минуты."
+   ],
+   "inMenu": true,
+   "portions": 4,
+   "addedBy": "",
+   "ts": 1794317688478
+  }
+ ],
  "shop": {}
 }
