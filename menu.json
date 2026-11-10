@@ -39,9 +39,9 @@
   },
   "масло растительное": {
    "name": "Масло растительное",
-   "packQ": null,
-   "packU": "",
-   "packLabel": "",
+   "packQ": 1,
+   "packU": "л",
+   "packLabel": "1л",
    "price": null,
    "dept": null
   }
