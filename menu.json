@@ -449,6 +449,29 @@
    "portions": 8,
    "addedBy": "",
    "ts": 1794326757527
+  },
+  {
+   "id": "g0tdxyrf",
+   "name": "Ребрышки в духовке",
+   "tag": "hot",
+   "servings": 4,
+   "time": "",
+   "source": "",
+   "image": "",
+   "ings": [
+    {
+     "q": null,
+     "u": "по вкусу",
+     "name": "Мясо"
+    }
+   ],
+   "steps": [
+    "маринад 2. в духовку готово"
+   ],
+   "inMenu": false,
+   "portions": 4,
+   "addedBy": "Mikhail-san Shimada",
+   "ts": 1795280835264
   }
  ],
  "shop": {}
