@@ -505,6 +505,37 @@
    "portions": 4,
    "addedBy": "Mikhail-san Shimada",
    "ts": 1795281012959
+  },
+  {
+   "id": "7r27o8e8",
+   "name": "НА СТОЛ!",
+   "tag": "other",
+   "servings": 4,
+   "time": "",
+   "source": "",
+   "image": "",
+   "ings": [
+    {
+     "q": null,
+     "u": "по вкусу",
+     "name": "Оливки"
+    },
+    {
+     "q": null,
+     "u": "по вкусу",
+     "name": "Мясная нарезка"
+    },
+    {
+     "q": null,
+     "u": "по вкусу",
+     "name": "Сырная нарезка"
+    }
+   ],
+   "steps": [],
+   "inMenu": false,
+   "portions": 4,
+   "addedBy": "Mikhail-san Shimada",
+   "ts": 1795281187694
   }
  ],
  "shop": {}
