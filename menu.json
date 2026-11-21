@@ -472,6 +472,39 @@
    "portions": 4,
    "addedBy": "Mikhail-san Shimada",
    "ts": 1795280835264
+  },
+  {
+   "id": "oafvitqz",
+   "name": "Тарталетки с икрой",
+   "tag": "other",
+   "servings": 4,
+   "time": "",
+   "source": "",
+   "image": "",
+   "ings": [
+    {
+     "q": null,
+     "u": "по вкусу",
+     "name": "Тарталетки"
+    },
+    {
+     "q": null,
+     "u": "по вкусу",
+     "name": "Творожный сыр"
+    },
+    {
+     "q": null,
+     "u": "по вкусу",
+     "name": "Икра"
+    }
+   ],
+   "steps": [
+    "Миша"
+   ],
+   "inMenu": false,
+   "portions": 4,
+   "addedBy": "Mikhail-san Shimada",
+   "ts": 1795281012959
   }
  ],
  "shop": {}
