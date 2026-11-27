@@ -212,6 +212,14 @@
    "packLabel": "",
    "price": null,
    "dept": null
+  },
+  "кофе 3 в 1": {
+   "name": "Кофе 3 в 1",
+   "packQ": null,
+   "packU": "",
+   "packLabel": "",
+   "price": null,
+   "dept": null
   }
  },
  "recipes": [
@@ -565,6 +573,27 @@
    "portions": 6,
    "addedBy": "Лиза",
    "ts": 1795792070362
+  },
+  {
+   "id": "reqicbxc",
+   "name": "Кофе 3в1",
+   "tag": "drink",
+   "servings": 20,
+   "time": "5",
+   "source": "",
+   "image": "https://basket-36.wbbasket.ru/vol7918/part791871/791871247/images/big/1.webp",
+   "ings": [
+    {
+     "q": 18,
+     "u": "шт",
+     "name": "Кофе 3 в 1"
+    }
+   ],
+   "steps": [],
+   "inMenu": false,
+   "portions": 20,
+   "addedBy": "Лиза",
+   "ts": 1795792225877
   }
  ],
  "shop": {}
