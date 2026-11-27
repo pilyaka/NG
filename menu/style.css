@@ -164,3 +164,49 @@ select{appearance:none;background-image:linear-gradient(45deg,transparent 50%,va
   .er .l1{grid-template-columns:54px 86px minmax(0,1fr) 36px}
   .row3{grid-template-columns:1fr 1fr}.row3>div:first-child{grid-column:1/-1}
 }
+
+/* голосование */
+.vseg{display:inline-flex;gap:4px;padding:4px;background:var(--card);border:1px solid var(--line);border-radius:12px;margin-bottom:14px}
+.vseg a{padding:8px 16px;border-radius:9px;color:var(--mute);font-weight:700;font-size:14px;text-decoration:none}
+.vseg a.on{background:var(--text);color:var(--bg)}
+.vote{max-width:520px;margin-left:auto;margin-right:auto}
+.vprog{display:flex;justify-content:space-between;font-size:13px;color:var(--mute);margin-bottom:12px}
+.deck{position:relative;height:460px;touch-action:none}
+.vcard{position:absolute;inset:0;background:var(--card2);border:1px solid var(--line);border-radius:22px;overflow:hidden;display:flex;flex-direction:column;user-select:none;-webkit-user-select:none;transition:transform .25s ease,opacity .25s ease;cursor:grab;box-shadow:0 14px 40px rgba(0,0,0,.45)}
+.vcard.back{transform:scale(.95) translateY(14px);opacity:.6;pointer-events:none}
+.vcard.drag{transition:none;cursor:grabbing}
+.vcard .ph.vph{flex:0 0 200px;height:200px;border-radius:0}
+.vcard img{pointer-events:none;-webkit-user-drag:none}
+.vbd{padding:14px 16px;display:flex;flex-direction:column;gap:6px;flex:1}
+.vbd .nm{font:500 20px Unbounded,Manrope,sans-serif;line-height:1.2}
+.vbd .mt{color:var(--mute);font-size:13px}
+.vlinks{margin-top:auto;display:flex;gap:6px}
+.stamp{position:absolute;top:18px;z-index:3;padding:6px 12px;border:3px solid currentColor;border-radius:10px;font:700 20px Unbounded,sans-serif;opacity:0;background:rgba(9,11,16,.75);pointer-events:none}
+.s-yes{left:18px;color:var(--ok);transform:rotate(-12deg)}.s-no{right:18px;color:#9aa0ac;transform:rotate(12deg)}
+.s-love{left:50%;top:70px;color:#f0b23a;transform:translateX(-50%) rotate(-4deg)}.s-never{left:50%;top:70px;color:#b07cff;transform:translateX(-50%) rotate(4deg)}
+.vacts{display:flex;justify-content:center;gap:14px;margin-top:16px;align-items:flex-start}
+.vacts>div{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:11px;color:var(--mute);font-weight:600}
+.vact{width:56px;height:56px;border-radius:50%;border:1px solid var(--line);background:var(--card2);font-size:22px;cursor:pointer;transition:transform .12s}
+.vact.big{width:66px;height:66px;font-size:26px}.vact:active{transform:scale(.9)}
+.vact.v-yes{color:var(--ok)}.vact.v-no{color:#9aa0ac}.vact.v-love{color:#f0b23a}.vact.v-never{color:#b07cff}
+.vdone{text-align:center;padding:20px 0}.vdone h3{font-family:Unbounded,sans-serif;font-weight:500;margin:6px 0}
+.vleg{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--mute);margin-top:10px}
+.vleg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+i.v-love{background:#f0b23a}i.v-yes{background:var(--ok)}i.v-no{background:#5d6475}i.v-never{background:#b07cff}
+.vlist{display:flex;flex-direction:column;gap:10px}
+.vres{background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.vtop{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.vtop .nm{font-weight:700;color:var(--text);text-decoration:none}
+.vpct{font:700 20px Unbounded,sans-serif;text-align:right}.vpct small{display:block;font:600 11px Manrope,sans-serif;color:var(--mute)}
+.vbar{display:flex;height:10px;border-radius:6px;overflow:hidden;background:var(--bg)}.vbar i{display:block;height:100%}
+.veto{align-self:flex-start;font-size:12px;font-weight:700;color:#fff;background:#7a44b8;padding:2px 8px;border-radius:999px}
+.vres details summary{cursor:pointer;font-size:13px;color:var(--mute);font-weight:600}
+.vfoot{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+@media (prefers-reduced-motion:reduce){.vcard,.vact{transition:none}}
+.vings{font-size:13px;color:var(--mute);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.rpanel{max-width:520px;margin-left:auto;margin-right:auto}
+.rhead{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.rcats{margin-top:10px;display:flex;gap:6px;flex-wrap:wrap}
+.vadm{margin-left:auto;display:inline-flex;gap:6px}
+.vmenu{margin-top:14px}.vmenu>summary{cursor:pointer;font-size:13px;color:var(--mute);font-weight:600}
+.vtop .note{font-size:12px}

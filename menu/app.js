@@ -162,9 +162,11 @@ function parseHtml(html){
     if(!ings.length)return null;
     var n=doc.querySelector('[itemprop="name"]')||doc.querySelector('h1');res.name=n?htmlText(n.textContent):'';
     ings.forEach(function(el){var p=parseIng(htmlText(el.textContent));if(p.name)res.ings.push(p);});
-    doc.querySelectorAll('[itemprop="recipeInstructions"]').forEach(function(el){flatSteps(el.textContent,res.steps);});
+    doc.querySelectorAll('[itemprop="recipeInstructions"]').forEach(function(el){var li=el.querySelectorAll('li');if(li.length)li.forEach(function(x){var t=htmlText(x.textContent);if(t)res.steps.push(t.replace(/^(шаг\s*)?\d+[.)]\s+/i,''));});else flatSteps(el.textContent,res.steps);});
+    var tt=doc.querySelector('[itemprop="totalTime"],[itemprop="cookTime"]');if(tt)res.time=parseTime(tt.getAttribute('datetime')||tt.getAttribute('content'))||htmlText(tt.textContent).slice(0,40);
     var yy=doc.querySelector('[itemprop="recipeYield"]');if(yy){var m2=yy.textContent.match(/\d+/);if(m2)res.servings=+m2[0];}
     var og=doc.querySelector('meta[property="og:image"]');if(og)res.image=safeUrl(og.getAttribute('content'));
+    if(!res.image){var ii=doc.querySelector('[itemprop="image"][src]');if(ii)res.image=safeUrl(ii.getAttribute('src'));}
   }
   if(!res.ings.length)return null;
   return res;
@@ -245,8 +247,9 @@ function load(){
   if(!REPO){loaded=true;loadErr='norepo';render();return Promise.resolve();}
   if(saving||ops.length||kSaving)return Promise.resolve();
   lastLoad=Date.now();
-  return Promise.all([ghGet('menu.json'),ghGet('data.json').catch(function(){return {sha:null,data:null};})]).then(function(a){
+  return Promise.all([ghGet('menu.json'),ghGet('data.json').catch(function(){return {sha:null,data:null};}),ghGet('votes.json').catch(function(){return {sha:null,data:null};})]).then(function(a){
     if(ops.length||saving)return;
+    if(!vSaving&&!vOps.length)V=normV(a[2].data);
     M=normalize(a[0].data);msha=a[0].sha;K=a[1].data;ksha=a[1].sha;loaded=true;loadErr='';
     scheduleSync();
   }).catch(function(e){loaded=true;loadErr=e.message||String(e);}).then(function(){render();});
@@ -377,6 +380,7 @@ function route(){
   if(h[0]==='new')return {v:'edit',id:null};
   if(h[0]==='shop')return {v:'shop'};
   if(h[0]==='products')return {v:'products'};
+  if(h[0]==='vote')return {v:'vote',id:h[1]==='res'?'res':'swipe'};
   return {v:'list'};
 }
 function go(h){location.hash=h;}
@@ -386,7 +390,7 @@ function recipe(id){return M.recipes.find(function(r){return r.id===id;});}
 var app=document.getElementById('app');
 function statusHtml(){
   if(!loaded)return '<div class="status saving" id="st"><i></i>Загружаю…</div>';
-  if(saving||saveTimer||kSaving)return '<div class="status saving" id="st"><i></i>Сохраняю…</div>';
+  if(saving||saveTimer||kSaving||vSaving||vTimer)return '<div class="status saving" id="st"><i></i>Сохраняю…</div>';
   if(loadErr)return '<div class="status" id="st"><i></i>Нет связи</div>';
   var r=role();
   return '<div class="status live" id="st"><i></i>'+(r==='admin'?'Сохранено':r==='friend'?'Вход: '+esc(me||'друг'):'Просмотр')+'</div>';
@@ -418,6 +422,8 @@ function navHtml(rt){
   var sh=shopping(),t=totals(sh);
   var h='<nav class="nav"><a class="chip back" href="../">'+svg('back',14,2)+'Копилка</a><span class="sep"></span>';
   h+='<a class="chip'+(rt.v==='list'||rt.v==='recipe'?' on':'')+'" href="#/">Рецепты <small>'+M.recipes.length+'</small></a>';
+  var vq=voteQueue().length;
+  h+='<a class="chip'+(rt.v==='vote'?' on':'')+'" href="#/vote">Голосование'+(vq?' <small>'+vq+'</small>':'')+'</a>';
   h+='<a class="chip'+(rt.v==='shop'?' on':'')+'" href="#/shop">Покупки <small>'+t.count+'</small></a>';
   h+='<a class="chip'+(rt.v==='products'?' on':'')+'" href="#/products">Цены'+(t.noPrice||t.bad?' <small class="wrn">'+(t.noPrice+t.bad)+'</small>':'')+'</a>';
   if(canEdit())h+='<a class="chip add" href="#/new">+ рецепт</a>';
@@ -636,6 +642,273 @@ function viewProducts(){
 
 function plural(n,a,b,c){n=Math.abs(n)%100;var m=n%10;if(n>10&&n<20)return c;if(m>1&&m<5)return b;if(m===1)return a;return c;}
 
+/* ================= голосование «что едим?» ================= */
+/* На голосовании: случайные рецепты с «Поварёнка» (кандидаты, лежат в votes.json → cands)
+   и рецепты друзей, которые ещё не в меню. Админ переносит победителей в меню. */
+var VK=['love','yes','no','never'];
+var VL={love:['Очень хочу','★'],yes:['Да','♥'],no:['Нет','✕'],never:['Не ем вообще','⛔']};
+var V={v:1,votes:{},cands:[]},vSaving=false,vTimer=null,vOps=[],vAdd=[];
+ui.vskip=[];ui.vreview=false;ui.rcat='any';ui.rbusy=false;ui.rmsg='';
+var POV=[['6','Горячее','hot',1200],['12','Салаты','salad',1200],['15','Закуски','snack',700],['2','Супы','hot',500],['30','Десерты','dessert',600],['25','Выпечка','other',1200]];
+var CAND_MAX=50;
+
+function cleanCand(c){
+  if(!c||typeof c!=='object')return null;
+  var id=String(c.id||'');if(!/^pv\d{1,9}$/.test(id))return null;
+  var name=String(c.name||'').trim().slice(0,120);if(!name)return null;
+  return {id:id,name:name,tag:TAGS.some(function(t){return t[0]===c.tag;})?c.tag:'other',servings:Math.max(1,Math.min(200,Math.round(+c.servings||4))),
+    time:String(c.time||'').slice(0,40),source:safeUrl(c.source),image:safeUrl(c.image),
+    ings:(Array.isArray(c.ings)?c.ings:[]).slice(0,60).map(function(i){i=i||{};return {q:typeof i.q==='number'&&isFinite(i.q)?i.q:null,u:String(i.u||'').slice(0,20),name:String(i.name||'').slice(0,80)};}).filter(function(i){return i.name;}),
+    steps:(Array.isArray(c.steps)?c.steps:[]).slice(0,30).map(function(s){return String(s).slice(0,800);}).filter(Boolean),
+    likes:Math.max(0,Math.round(+c.likes||0)),addedBy:String(c.addedBy||'').slice(0,30),ts:+c.ts||0};
+}
+function normV(d){
+  var o={v:1,votes:{},cands:[]};if(!d||typeof d!=='object')return o;
+  if(d.votes&&typeof d.votes==='object')Object.keys(d.votes).forEach(function(n){var src=d.votes[n],x={};if(src&&typeof src==='object')Object.keys(src).forEach(function(k){if(VL[src[k]])x[k]=src[k];});o.votes[String(n).slice(0,30)]=x;});
+  if(Array.isArray(d.cands))d.cands.forEach(function(c){c=cleanCand(c);if(c&&!o.cands.some(function(x){return x.id===c.id;}))o.cands.push(c);});
+  return o;
+}
+function voterName(){return isAdmin()?(me||'Админ'):me;}
+function myV(){return V.votes[voterName()]||{};}
+
+/* что сейчас на голосовании */
+function pool(){
+  var out=[];
+  V.cands.forEach(function(c){if(!recipe(c.id))out.push(Object.assign({kind:'cand'},c));});
+  M.recipes.forEach(function(r){if(!r.inMenu)out.push(Object.assign({kind:'rec'},r));});
+  return out.sort(function(a,b){return (a.ts||0)-(b.ts||0);});
+}
+function voteQueue(){
+  if(!canEdit())return [];
+  var mv=myV(),list=pool().filter(function(r){return ui.vreview||!mv[r.id];});
+  var sk=ui.vskip.filter(function(id){return list.some(function(r){return r.id===id;});});
+  return list.filter(function(r){return sk.indexOf(r.id)<0;}).concat(sk.map(function(id){return list.find(function(r){return r.id===id;});}));
+}
+
+/* ---- запись голосов: админ пишет votes.json сам, друзья — через сервис ---- */
+function vMutate(fn){fn(V);vOps.push(fn);render();clearTimeout(vTimer);vTimer=setTimeout(saveVotesNow,700);}
+function setVote(rid,val){
+  if(!canEdit())return;
+  var n=voterName();
+  vMutate(function(d){var x=d.votes[n]=d.votes[n]||{};if(val)x[rid]=val;else delete x[rid];});
+}
+function castVote(rid,val){
+  if(ui.vreview){ui.vskip=ui.vskip.filter(function(x){return x!==rid;});ui.vskip.push(rid);
+    if(ui.vskip.length>=pool().length){ui.vreview=false;ui.vskip=[];}}
+  else ui.vskip=ui.vskip.filter(function(x){return x!==rid;});
+  setVote(rid,val);
+}
+function saveVotesNow(tries){
+  vTimer=null;tries=tries||0;
+  if(vSaving){vTimer=setTimeout(saveVotesNow,600);return;}
+  if(!vOps.length)return;
+  var n=vOps.length,add=vAdd.slice(),name=voterName();vSaving=true;renderStatus();
+  var finish=function(fresh){
+    vSaving=false;vOps=vOps.slice(n);vAdd=vAdd.slice(add.length);
+    V=normV(fresh);vOps.forEach(function(f){f(V);});
+    render();if(vOps.length&&!vTimer)vTimer=setTimeout(saveVotesNow,300);
+  };
+  var fail=function(e){vSaving=false;err='Голосование не сохранилось: '+(e.message||e);render();};
+  if(isAdmin()){
+    ghGet('votes.json').then(function(r){
+      var d=normV(r.data);vOps.slice(0,n).forEach(function(f){f(d);});
+      return ghPut('votes.json',d,r.sha,'Меню: голосование — '+name).then(function(){finish(d);});
+    }).catch(function(e){if(e&&e.conflict&&tries<3){vSaving=false;saveVotesNow(tries+1);}else fail(e);});
+  }else{
+    if(!M.settings.workerUrl){fail(new Error('сервис для друзей не подключён'));return;}
+    fetch(M.settings.workerUrl+'/vote',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:pass,name:name,votes:Object.assign({},V.votes[name]||{}),add:add})}).then(function(res){
+      return res.json().catch(function(){return {};}).then(function(j){
+        if(res.status===401){pass='';ls('menu-pass',null);throw new Error('кодовое слово больше не подходит, войди заново');}
+        if(res.status===404)throw new Error('админ ещё не обновил сервис (нужен адрес /vote)');
+        if(!res.ok)throw new Error(j.error||('сервис ответил '+res.status));
+        finish(j.votes);
+      });
+    }).catch(fail);
+  }
+}
+
+/* ---- случайные рецепты с «Поварёнка» через сервис ---- */
+function wfetch(u){
+  return fetch(M.settings.workerUrl+'/fetch?url='+encodeURIComponent(u)).then(function(r){if(!r.ok)throw new Error('сайт ответил '+r.status);return r.text();});
+}
+function povId(u){var m=String(u||'').match(/povarenok\.ru\/recipes\/show\/(\d+)/);return m?m[1]:null;}
+function knownPov(){
+  var k={};M.recipes.forEach(function(r){var i=povId(r.source);if(i)k[i]=1;k[String(r.id).replace(/^pv/,'')]=1;});
+  V.cands.forEach(function(c){k[c.id.slice(2)]=1;});return k;
+}
+function randomListing(c,tries){
+  var max=tries?Math.max(1,Math.floor(c[3]/Math.pow(4,tries))):c[3],page=1+Math.floor(Math.random()*max);
+  return wfetch('https://www.povarenok.ru/recipes/category/'+c[0]+'/~'+page+'/').then(function(html){
+    var doc=new DOMParser().parseFromString(html,'text/html');
+    var items=[].map.call(doc.querySelectorAll('article.item-bl'),function(a){
+      var l=a.querySelector('h2 a[href*="/recipes/show/"]'),lk=a.querySelector('.i-likes'),im=a.querySelector('.m-img img');
+      return l?{url:l.getAttribute('href'),title:htmlText(l.textContent),likes:lk?parseInt(lk.textContent,10)||0:0,img:im?im.getAttribute('src'):''}:null;
+    }).filter(function(x){return x&&povId(x.url);});
+    if(!items.length&&tries<3)return randomListing(c,tries+1);
+    return items;
+  });
+}
+/* у старых рецептов «Поварёнка» шаги — простой текст с <br> после заголовка «Рецепт …» */
+function povSteps(html){
+  var doc=new DOMParser().parseFromString(html,'text/html'),out=[];
+  [].some.call(doc.querySelectorAll('h2'),function(h){
+    if(!/^Рецепт/.test(h.textContent.trim()))return false;
+    var d=h.nextElementSibling;if(!d||d.tagName!=='DIV')return false;
+    [].forEach.call(d.querySelectorAll('strong.bb,script,style'),function(x){x.remove();});
+    flatSteps(d.innerHTML.replace(/<br\s*\/?>/gi,'\n'),out);
+    return true;
+  });
+  return out;
+}
+function pickRandom(cat){
+  var c=cat==='any'?POV[Math.floor(Math.random()*POV.length)]:POV.find(function(x){return x[0]===cat;})||POV[0];
+  return randomListing(c,0).then(function(items){
+    var known=knownPov();
+    items=items.filter(function(x){return !known[povId(x.url)];}).sort(function(a,b){return b.likes-a.likes;});
+    if(!items.length)return null;
+    var it=items[Math.floor(Math.random()*Math.min(3,items.length))],url='https://www.povarenok.ru/recipes/show/'+povId(it.url)+'/';
+    return wfetch(url).then(function(html){
+      var p=parseHtml(html);if(!p||!p.ings.length)return null;
+      if(!p.steps.length)p.steps=povSteps(html);
+      return cleanCand({id:'pv'+povId(url),name:it.title||p.name,tag:c[2],servings:p.servings||4,time:p.time,source:url,image:p.image||safeUrl(it.img),
+        ings:p.ings.map(function(i){return {q:i.q,u:i.u||(i.q==null?'по вкусу':'шт'),name:cap(i.name)};}),steps:p.steps,likes:it.likes,addedBy:voterName(),ts:Date.now()});
+    });
+  });
+}
+function addRandom(n){
+  if(!canEdit()||ui.rbusy)return;
+  if(!M.settings.workerUrl){ui.rmsg='Сначала админ подключает сервис (⚙ → адрес сервиса).';render();return;}
+  ui.rbusy=true;ui.rmsg='Ищу рецепты на «Поварёнке»…';render();
+  var jobs=[];for(var i=0;i<n;i++)jobs.push(pickRandom(ui.rcat).catch(function(){return null;}));
+  Promise.all(jobs).then(function(list){
+    var seen={};list=list.filter(function(c){if(!c||seen[c.id]||V.cands.some(function(x){return x.id===c.id;}))return false;seen[c.id]=1;return true;});
+    ui.rbusy=false;
+    if(!list.length){ui.rmsg='Не получилось найти новые рецепты — попробуй ещё раз.';render();return;}
+    ui.rmsg='На голосовании: '+list.map(function(c){return '«'+c.name+'»';}).join(', ');
+    vAdd=vAdd.concat(list);
+    vMutate(function(d){list.forEach(function(c){if(!d.cands.some(function(x){return x.id===c.id;}))d.cands.push(c);});if(d.cands.length>CAND_MAX)d.cands=d.cands.slice(-CAND_MAX);});
+  });
+}
+
+/* ---- решения админа ---- */
+function candToMenu(id){
+  if(!isAdmin())return;
+  var c=V.cands.find(function(x){return x.id===id;});if(!c)return;
+  mutate(function(m){
+    if(m.recipes.some(function(y){return y.id===c.id;}))return;
+    var r={id:c.id,name:c.name,tag:c.tag,servings:c.servings,time:c.time,source:c.source,image:c.image,ings:clone(c.ings),steps:c.steps.slice(),inMenu:true,portions:c.servings,addedBy:'',ts:Date.now()};
+    m.recipes.push(r);
+    r.ings.forEach(function(i){var k=pkey(i.name);if(k&&i.q!=null&&!m.products[k])m.products[k]={name:i.name,packQ:null,packU:'',packLabel:'',price:null,dept:null};});
+  });
+  vMutate(function(d){d.cands=d.cands.filter(function(x){return x.id!==id;});});
+  msg='«'+c.name+'» теперь в меню. Цены на продукты — во вкладке «Цены».';msgAt=Date.now();render();
+}
+function candDrop(id){
+  if(!isAdmin())return;
+  vMutate(function(d){d.cands=d.cands.filter(function(x){return x.id!==id;});});
+}
+
+/* ---- подсчёт ---- */
+function vrow(r){
+  var c={love:[],yes:[],no:[],never:[]};Object.keys(V.votes).forEach(function(n){var x=V.votes[n][r.id];if(c[x])c[x].push(n);});
+  var t=c.love.length+c.yes.length+c.no.length+c.never.length;return {r:r,c:c,total:t,pct:t?Math.round((c.love.length+c.yes.length)/t*100):null};
+}
+function vsort(a,b){return (b.total>0)-(a.total>0)||(b.pct==null?-1:b.pct)-(a.pct==null?-1:a.pct)||a.c.never.length-b.c.never.length||b.c.love.length-a.c.love.length||b.total-a.total;}
+
+/* ---- отрисовка ---- */
+function itemLink(r,cls,text){
+  return r.kind==='cand'?'<a class="'+cls+'" href="'+esc(r.source)+'" target="_blank" rel="noopener noreferrer">'+(text||esc(r.name))+'</a>':'<a class="'+cls+'" href="#/r/'+esc(r.id)+'">'+(text||esc(r.name))+'</a>';
+}
+function voteCard(r,back){
+  var mine=myV()[r.id],ph=Object.assign({},r,{addedBy:r.kind==='cand'?'Поварёнок':(r.addedBy?'от '+r.addedBy:'')});
+  var meta=[];if(r.time)meta.push(esc(r.time));meta.push(r.ings.length+' ингр.');if(r.likes)meta.push('♥ '+r.likes+' на сайте');
+  return '<div class="vcard'+(back?' back':'')+'"'+(back?'':' data-swipe="'+esc(r.id)+'"')+'>'+phHtml(ph,'vph')+
+    '<div class="stamp s-yes">ДА</div><div class="stamp s-no">НЕТ</div><div class="stamp s-love">ОЧЕНЬ ХОЧУ</div><div class="stamp s-never">НЕ ЕМ</div>'+
+    '<div class="vbd"><div class="nm">'+esc(r.name)+'</div><div class="mt">'+meta.join(' · ')+'</div>'+
+    '<div class="vings">'+esc(r.ings.map(function(i){return i.name;}).join(', '))+'</div>'+
+    (mine?'<div class="note mt0">Твой прошлый голос: '+VL[mine][0]+'</div>':'')+
+    '<div class="vlinks">'+itemLink(r,'mini',r.kind==='cand'?'рецепт на сайте ↗':'рецепт →')+'</div></div></div>';
+}
+function randomPanel(){
+  if(!canEdit())return '';
+  var h='<section class="card rpanel"><div class="rhead"><div><b>🎲 Случайные рецепты</b><div class="note mt0">С «Поварёнка» — выбираю популярные из случайной страницы раздела.</div></div>';
+  h+='<button class="btn" style="width:auto;margin:0" data-a="rand"'+(ui.rbusy?' disabled':'')+'>'+(ui.rbusy?'Ищу…':'Подкинуть 3')+'</button></div>';
+  h+='<div class="tools rcats">'+[['any','Любое']].concat(POV).map(function(c){return '<button class="mini'+(ui.rcat===c[0]?' on':'')+'" data-a="rcat" data-v="'+c[0]+'">'+c[1]+'</button>';}).join('')+'</div>';
+  if(ui.rmsg)h+='<div class="note">'+esc(ui.rmsg)+'</div>';
+  return h+'</section>';
+}
+function viewVote(sub){
+  var h='<div class="vseg"><a class="'+(sub==='swipe'?'on':'')+'" href="#/vote">Свайпы</a><a class="'+(sub==='res'?'on':'')+'" href="#/vote/res">Итоги</a></div>';
+  return h+(sub==='res'?viewVoteRes():viewSwipe());
+}
+function viewSwipe(){
+  if(!canEdit())return '<section class="card"><div class="empty">Чтобы голосовать, войди как друг (имя + кодовое слово) — кнопка «🔑 войти» сверху. Итоги видны всем.<br><br><a class="mini accent" href="#/vote/res">Смотреть итоги →</a></div></section>';
+  var all=pool(),q=voteQueue(),mv=myV(),done=all.filter(function(r){return mv[r.id];}).length;
+  var h=randomPanel();
+  if(!all.length)return h+'<section class="card vote"><div class="vdone"><div style="font-size:52px">🍽</div><h3>На голосовании пусто</h3><p class="note">Нажми «Подкинуть 3» — и рецепты с сайта появятся здесь для всех.</p></div></section>';
+  h+='<section class="card vote"><div class="vprog"><span>'+(ui.vreview?'Пересмотр':'Осталось '+q.length+' из '+all.length)+'</span><span>Ты оценил(а) '+done+'</span></div>';
+  if(!q.length){
+    return h+'<div class="vdone"><div style="font-size:52px">🎉</div><h3>Ты всё оценил(а)</h3><p class="note">Подкинь ещё рецептов, смотри итоги или пройдись ещё раз и поменяй мнение.</p><div class="tools" style="justify-content:center"><a class="btn" style="width:auto" href="#/vote/res">К итогам</a><button class="btn ghost" style="width:auto" data-a="vreview">Пройти заново</button></div></div></section>';
+  }
+  h+='<div class="deck">'+(q[1]?voteCard(q[1],true):'')+voteCard(q[0],false)+'</div>';
+  h+='<div class="vacts">';
+  [['no','big'],['never',''],['love',''],['yes','big']].forEach(function(x){h+='<div><button class="vact v-'+x[0]+' '+x[1]+'" data-a="vote" data-id="'+esc(q[0].id)+'" data-v="'+x[0]+'" aria-label="'+VL[x[0]][0]+'">'+VL[x[0]][1]+'</button><span>'+VL[x[0]][0].replace(' вообще','')+'</span></div>';});
+  h+='</div><p class="note" style="text-align:center">Вправо — да, влево — нет, вверх — очень хочу, вниз — не ем. Стрелки на клавиатуре тоже работают, пробел — пропустить.</p>';
+  h+='<div class="tools" style="justify-content:center"><button class="mini" data-a="vskip">пропустить</button>'+(ui.vreview?'<button class="mini" data-a="vreview">закончить пересмотр</button>':'')+'</div>';
+  return h+'</section>';
+}
+function resRow(x,inMenuList){
+  var r=x.r,mv=myV(),you=canEdit()?voterName():null;
+  var h='<div class="vres"><div class="vtop"><div>'+itemLink(r,'nm')+'<div class="note mt0">'+(r.kind==='cand'?'Поварёнок'+(r.likes?' · ♥ '+r.likes:''):r.inMenu?'в меню':'предложил(а) '+esc(r.addedBy||'друг'))+(r.time?' · '+esc(r.time):'')+'</div></div><div class="vpct">'+(x.pct==null?'—':x.pct+'%')+'<small>'+(x.total?x.total+' '+plural(x.total,'голос','голоса','голосов'):'нет голосов')+'</small></div></div>';
+  h+='<div class="vbar">'+(x.total?VK.map(function(k){return x.c[k].length?'<i class="v-'+k+'" style="width:'+(x.c[k].length/x.total*100).toFixed(1)+'%"></i>':'';}).join(''):'')+'</div>';
+  if(x.c.never.length)h+='<span class="veto">⛔ '+x.c.never.length+' не ест</span>';
+  if(x.total)h+='<details><summary>Кто как проголосовал</summary>'+VK.filter(function(k){return x.c[k].length;}).map(function(k){return '<div class="note mt0">'+VL[k][0]+': <b>'+x.c[k].map(function(n){return n===you?'ты':esc(n);}).join(', ')+'</b></div>';}).join('')+'</details>';
+  h+='<div class="vfoot">';
+  if(canEdit()&&!inMenuList)h+='<span class="note mt0">Твой голос:</span>'+VK.map(function(k){return '<button class="mini'+(mv[r.id]===k?' on':'')+'" data-a="myvote" data-id="'+esc(r.id)+'" data-v="'+k+'" title="'+VL[k][0]+'">'+VL[k][1]+'</button>';}).join('');
+  if(isAdmin()&&!inMenuList){
+    h+='<span class="vadm">';
+    if(r.kind==='cand')h+='<button class="mini'+(ui.confirm==='cdel'+r.id?' warn':'')+'" data-a="cdel" data-id="'+esc(r.id)+'">'+(ui.confirm==='cdel'+r.id?'точно убрать?':'убрать')+'</button><button class="inm" data-a="c2menu" data-id="'+esc(r.id)+'">+ в меню</button>';
+    else h+='<button class="inm" data-a="inmenu" data-id="'+esc(r.id)+'">+ в меню</button>';
+    h+='</span>';
+  }
+  return h+'</div></div>';
+}
+function viewVoteRes(){
+  var res=pool().map(vrow).sort(vsort),ids={};res.forEach(function(x){ids[x.r.id]=1;});
+  var voters=Object.keys(V.votes).filter(function(n){return Object.keys(V.votes[n]).some(function(k){return ids[k];});});
+  var best=res.find(function(x){return x.total&&!x.c.never.length&&x.pct>=50;});
+  var h='<section class="card hero"><div class="label">'+(best?'Сейчас впереди':'Итоги')+'</div><div class="big" style="font-size:clamp(22px,5vw,32px)">'+(best?esc(best.r.name):res.some(function(x){return x.total;})?'Явного лидера без вето нет':res.length?'Голосов пока нет':'На голосовании пусто')+'</div>';
+  if(best)h+='<div class="sub">'+best.pct+'% за · '+best.total+' '+plural(best.total,'голос','голоса','голосов')+(best.c.love.length?' · '+best.c.love.length+' очень хотят':'')+'</div>';
+  h+='<div class="note">'+(voters.length?'Проголосовали ('+voters.length+'): '+voters.map(esc).join(', '):'Ещё никто не голосовал.')+'</div>';
+  h+='<div class="vleg">'+VK.map(function(k){return '<span><i class="v-'+k+'"></i>'+VL[k][0].toLowerCase()+'</span>';}).join('')+'</div>';
+  if(isAdmin()&&res.length)h+='<div class="note">Решили — жми «+ в меню», рецепт со всеми ингредиентами переедет в меню и в список покупок.</div>';
+  h+='</section>';
+  h+='<section class="card"><h2>На голосовании<span class="tl">'+res.length+'</span></h2><div class="vlist">'+res.map(function(x){return resRow(x,false);}).join('')+'</div>';
+  if(!res.length)h+='<div class="empty">Пусто. '+(canEdit()?'<a href="#/vote">Подкинуть рецептов →</a>':'')+'</div>';
+  var inm=M.recipes.filter(function(r){return r.inMenu;}).map(vrow).filter(function(x){return x.total;}).sort(vsort);
+  if(inm.length)h+='<details class="vmenu"><summary>Уже в меню — как за них голосовали ('+inm.length+')</summary><div class="vlist" style="margin-top:10px">'+inm.map(function(x){return resRow(x,true);}).join('')+'</div></details>';
+  if(isAdmin()&&voters.length)h+='<div class="tools" style="justify-content:center;margin-top:12px"><button class="mini warn" data-a="vreset">'+(ui.confirm==='vreset'?'точно сбросить голоса у всех?':'сбросить все голоса')+'</button></div>';
+  return h+'</section>';
+}
+/* перетаскивание карточки */
+(function(){
+  var c=null,sx=0,sy=0,dx=0,dy=0;
+  function dir(){if(Math.abs(dx)>Math.abs(dy)){if(dx>110)return 'yes';if(dx<-110)return 'no';}else{if(dy<-110)return 'love';if(dy>130)return 'never';}return null;}
+  document.addEventListener('pointerdown',function(e){var t=e.target.closest('[data-swipe]');if(!t||e.target.closest('a,button'))return;c=t;sx=e.clientX;sy=e.clientY;dx=dy=0;c.classList.add('drag');try{c.setPointerCapture(e.pointerId);}catch(_){}});
+  document.addEventListener('pointermove',function(e){if(!c)return;dx=e.clientX-sx;dy=e.clientY-sy;c.style.transform='translate('+dx+'px,'+dy+'px) rotate('+(dx/18)+'deg)';
+    var o={yes:0,no:0,love:0,never:0};if(Math.abs(dx)>Math.abs(dy)){if(dx>0)o.yes=dx/110;else o.no=-dx/110;}else{if(dy<0)o.love=-dy/110;else o.never=dy/130;}
+    Object.keys(o).forEach(function(k){var s=c.querySelector('.s-'+k);if(s)s.style.opacity=Math.min(1,o[k]);});});
+  function end(){if(!c)return;var card=c,v=dir();c=null;card.classList.remove('drag');
+    if(v){card.style.transform={yes:'translate(140%,0) rotate(20deg)',no:'translate(-140%,0) rotate(-20deg)',love:'translate(0,-140%)',never:'translate(0,140%)'}[v];card.style.opacity='0';setTimeout(function(){castVote(card.dataset.swipe,v);},200);}
+    else{card.style.transform='';[].forEach.call(card.querySelectorAll('.stamp'),function(s){s.style.opacity=0;});}}
+  document.addEventListener('pointerup',end);document.addEventListener('pointercancel',end);
+  document.addEventListener('keydown',function(e){
+    var rt=route();if(rt.v!=='vote'||rt.id!=='swipe'||e.target.closest('input,textarea,select'))return;
+    var q=voteQueue();if(!q[0])return;var m={ArrowRight:'yes',ArrowLeft:'no',ArrowUp:'love',ArrowDown:'never'}[e.key];
+    if(m){e.preventDefault();castVote(q[0].id,m);}else if(e.key===' '){e.preventDefault();act('vskip');}
+  });
+})();
+
 var lastRoute='';
 function render(){
   var ae=document.activeElement,aid=ae&&ae.id,ss=null,se=null;
@@ -655,6 +928,7 @@ function render(){
   else if(rt.v==='edit')h+=viewEdit(rt);
   else if(rt.v==='shop')h+=viewShop();
   else if(rt.v==='products')h+=viewProducts();
+  else if(rt.v==='vote')h+=viewVote(rt.id);
   else h+=viewList();
   app.className=first?'':'calm';first=false;
   app.innerHTML=h;
@@ -713,6 +987,15 @@ window.addEventListener('hashchange',function(){ui.confirm=null;if(Date.now()-ms
 
 function act(a,id,v){
   var keep=false;
+  if(a==='vote'){castVote(id,v);return;}
+  if(a==='vskip'){var q=voteQueue();if(q[0]){ui.vskip=ui.vskip.filter(function(x){return x!==q[0].id;});ui.vskip.push(q[0].id);}render();return;}
+  if(a==='vreview'){ui.vreview=!ui.vreview;ui.vskip=[];render();return;}
+  if(a==='myvote'){setVote(id,myV()[id]===v?null:v);return;}
+  if(a==='vreset'){if(ui.confirm!=='vreset'){ui.confirm='vreset';render();return;}ui.confirm=null;vMutate(function(d){d.votes={};});return;}
+  if(a==='rcat'){ui.rcat=v;render();return;}
+  if(a==='rand'){addRandom(3);return;}
+  if(a==='c2menu'){candToMenu(id);return;}
+  if(a==='cdel'){if(ui.confirm!=='cdel'+id){ui.confirm='cdel'+id;render();return;}ui.confirm=null;candDrop(id);return;}
   if(a==='authToggle'){ui.auth=!ui.auth;render();}
   else if(a==='authMode'){ui.authMode=v;render();}
   else if(a==='dismiss'){err='';msg='';render();}
