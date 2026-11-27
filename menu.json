@@ -204,6 +204,14 @@
    "packLabel": "10шт",
    "price": 100,
    "dept": null
+  },
+  "мандарины": {
+   "name": "Мандарины",
+   "packQ": null,
+   "packU": "",
+   "packLabel": "",
+   "price": null,
+   "dept": null
   }
  },
  "recipes": [
@@ -536,6 +544,27 @@
    "portions": 4,
    "addedBy": "Mikhail-san Shimada",
    "ts": 1795281187694
+  },
+  {
+   "id": "4al5yt2q",
+   "name": "Тарелка мандаринов",
+   "tag": "other",
+   "servings": 6,
+   "time": "5",
+   "source": "",
+   "image": "https://vkusdostavka.ru/upload/iblock/38f/y15z6kdwalnrfm1w8exmhcdpf1sopwje.jpg",
+   "ings": [
+    {
+     "q": 5,
+     "u": "кг",
+     "name": "Мандарины"
+    }
+   ],
+   "steps": [],
+   "inMenu": false,
+   "portions": 6,
+   "addedBy": "Лиза",
+   "ts": 1795792070362
   }
  ],
  "shop": {}
